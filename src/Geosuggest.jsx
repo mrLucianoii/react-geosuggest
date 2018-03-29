@@ -29,14 +29,13 @@ class Geosuggest extends React.Component {
     this.state = {
       isSuggestsHidden: true,
       isLoading: false,
-      userInput: props.initialValue,
+      userInput: props.initialPlaceId ? '' : props.initialValue, // placeId is more precise
+      userPlaceId: props.initialPlaceId,
       activeSuggest: null,
       suggests: []
     };
-
     this.onInputChange = this.onInputChange.bind(this);
     this.onAfterInputChange = this.onAfterInputChange.bind(this);
-
     if (props.queryDelay) {
       this.onAfterInputChange =
         debounce(this.onAfterInputChange, props.queryDelay);
@@ -57,6 +56,7 @@ class Geosuggest extends React.Component {
    * Called on the client side after component is mounted.
    * Google api sdk object will be obtained and cached as a instance property.
    * Necessary objects of google api will also be determined and saved.
+   * If a user placeId is preasent, then call initialInput for address data.
    */
   componentWillMount() {
     if (typeof window === 'undefined') {
@@ -67,7 +67,7 @@ class Geosuggest extends React.Component {
       (window.google && // eslint-disable-line no-extra-parens
         window.google.maps) ||
       this.googleMaps;
-
+    
     /* istanbul ignore next */
     if (!googleMaps) {
       if (console) {
@@ -80,6 +80,11 @@ class Geosuggest extends React.Component {
 
     this.autocompleteService = new googleMaps.places.AutocompleteService();
     this.geocoder = new googleMaps.Geocoder();
+
+    // check for userPlaceId
+    if (this.state.userPlaceId) {
+      this.intitialInput(this.state.userPlaceId);
+    }
   }
 
   /**
@@ -105,7 +110,7 @@ class Geosuggest extends React.Component {
    */
   onAfterInputChange = () => {
     this.showSuggests();
-    this.props.onChange(this.state.userInput);
+    this.props.onChange(this.state.placeId);
   };
 
   /**
@@ -396,7 +401,6 @@ class Geosuggest extends React.Component {
         if (status === this.googleMaps.GeocoderStatus.OK) {
           var gmaps = results[0],
             location = gmaps.geometry.location;
-
           suggest.gmaps = gmaps;
           suggest.location = {
             lat: location.lat(),
@@ -406,6 +410,25 @@ class Geosuggest extends React.Component {
         this.props.onSuggestSelect(suggest);
       }
     );
+  };
+
+  /**
+   * Initial value for placeId string
+   * @param  {String} initialPlaceId 
+   */
+  intitialInput(initialPlaceId) {
+    const isPlaceId = new RegExp('^[a-zA-Z0-9-_\s]+$');
+    if (isPlaceId.test(initialPlaceId)) {
+      const value = {placeId: initialPlaceId};
+      this.geocoder.geocode(value, (results, status) => {
+        if (status === this.googleMaps.GeocoderStatus.OK) {
+          const formattedAdress = results[0].formatted_address;
+          this.setState({userInput: formattedAdress});
+        }else {
+          this.setState({userInput: ''});
+        }
+      });
+    }
   }
 
   /**
@@ -452,6 +475,7 @@ class Geosuggest extends React.Component {
         onSuggestSelect={this.selectSuggest}
         renderSuggestItem={this.props.renderSuggestItem}
         minLength={this.props.minLength}/>;
+    
 
     return <div className={classes}>
       <div className="geosuggest__input-wrapper">

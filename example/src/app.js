@@ -48,6 +48,7 @@ class App extends React.Component {
    * Render the example app
    * @return {Function} React render function
    */
+
   render() {
     var fixtures = [
       {label: 'New York', location: {lat: 40.7033127, lng: -73.979681}},
@@ -58,6 +59,7 @@ class App extends React.Component {
     return ( // eslint-disable-line
       <div>
         <Geosuggest
+          initialPlaceId='ChIJEcHIDqKw2YgRZU-t3XHylv8'
           fixtures={fixtures}
           onFocus={this.onFocus}
           onBlur={this.onBlur}
