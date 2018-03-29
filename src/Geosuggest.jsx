@@ -29,7 +29,8 @@ class Geosuggest extends React.Component {
     this.state = {
       isSuggestsHidden: true,
       isLoading: false,
-      userInput: props.initialPlaceId ? '' : props.initialValue, // placeId is more precise
+      userInput: props.initialPlaceId ? ''
+        : props.initialValue, // placeId is more precise
       userPlaceId: props.initialPlaceId,
       activeSuggest: null,
       suggests: []
@@ -67,7 +68,7 @@ class Geosuggest extends React.Component {
       (window.google && // eslint-disable-line no-extra-parens
         window.google.maps) ||
       this.googleMaps;
-    
+
     /* istanbul ignore next */
     if (!googleMaps) {
       if (console) {
@@ -399,6 +400,7 @@ class Geosuggest extends React.Component {
       options,
       (results, status) => {
         if (status === this.googleMaps.GeocoderStatus.OK) {
+          this.props.locationData(results);
           var gmaps = results[0],
             location = gmaps.geometry.location;
           suggest.gmaps = gmaps;
@@ -410,11 +412,11 @@ class Geosuggest extends React.Component {
         this.props.onSuggestSelect(suggest);
       }
     );
-  };
+  }
 
   /**
    * Initial value for placeId string
-   * @param  {String} initialPlaceId 
+   * @param  {String} initialPlaceId the user input placeId
    */
   intitialInput(initialPlaceId) {
     const isPlaceId = new RegExp('^[a-zA-Z0-9-_\s]+$');
@@ -422,6 +424,7 @@ class Geosuggest extends React.Component {
       const value = {placeId: initialPlaceId};
       this.geocoder.geocode(value, (results, status) => {
         if (status === this.googleMaps.GeocoderStatus.OK) {
+          this.props.locationData(results);
           const formattedAdress = results[0].formatted_address;
           this.setState({userInput: formattedAdress});
         }else {
@@ -475,7 +478,6 @@ class Geosuggest extends React.Component {
         onSuggestSelect={this.selectSuggest}
         renderSuggestItem={this.props.renderSuggestItem}
         minLength={this.props.minLength}/>;
-    
 
     return <div className={classes}>
       <div className="geosuggest__input-wrapper">
