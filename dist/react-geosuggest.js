@@ -1,4 +1,4 @@
-(function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}g.Geosuggest = f()}})(function(){var define,module,exports;return (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
+(function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}g.Geosuggest = f()}})(function(){var define,module,exports;return (function(){function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s}return e})()({1:[function(require,module,exports){
 /*!
   Copyright (c) 2016 Jed Watson.
   Licensed under the MIT License (MIT), see
@@ -824,6 +824,10 @@ process.off = noop;
 process.removeListener = noop;
 process.removeAllListeners = noop;
 process.emit = noop;
+process.prependListener = noop;
+process.prependOnceListener = noop;
+
+process.listeners = function (name) { return [] }
 
 process.binding = function (name) {
     throw new Error('process.binding is not supported');
@@ -1753,7 +1757,7 @@ var Geosuggest = function (_React$Component) {
 
     _this.onAfterInputChange = function () {
       _this.showSuggests();
-      _this.props.onChange(_this.state.userInput);
+      _this.props.onChange(_this.state.placeId);
     };
 
     _this.onInputFocus = function () {
@@ -1825,14 +1829,13 @@ var Geosuggest = function (_React$Component) {
     _this.state = {
       isSuggestsHidden: true,
       isLoading: false,
-      userInput: props.initialValue,
+      userInput: props.initialPlaceId ? '' : props.initialValue, // placeId is more precise
+      userPlaceId: props.initialPlaceId,
       activeSuggest: null,
       suggests: []
     };
-
     _this.onInputChange = _this.onInputChange.bind(_this);
     _this.onAfterInputChange = _this.onAfterInputChange.bind(_this);
-
     if (props.queryDelay) {
       _this.onAfterInputChange = (0, _lodash2.default)(_this.onAfterInputChange, props.queryDelay);
     }
@@ -1857,6 +1860,7 @@ var Geosuggest = function (_React$Component) {
      * Called on the client side after component is mounted.
      * Google api sdk object will be obtained and cached as a instance property.
      * Necessary objects of google api will also be determined and saved.
+     * If a user placeId is preasent, then call initialInput for address data.
      */
 
   }, {
@@ -1881,6 +1885,11 @@ var Geosuggest = function (_React$Component) {
 
       this.autocompleteService = new googleMaps.places.AutocompleteService();
       this.geocoder = new googleMaps.Geocoder();
+
+      // check for userPlaceId
+      if (this.state.userPlaceId) {
+        this.intitialInput(this.state.userPlaceId);
+      }
     }
 
     /**
@@ -2173,9 +2182,9 @@ var Geosuggest = function (_React$Component) {
       }
       this.geocoder.geocode(options, function (results, status) {
         if (status === _this4.googleMaps.GeocoderStatus.OK) {
+          _this4.props.locationData(results);
           var gmaps = results[0],
               location = gmaps.geometry.location;
-
           suggest.gmaps = gmaps;
           suggest.location = {
             lat: location.lat(),
@@ -2187,6 +2196,31 @@ var Geosuggest = function (_React$Component) {
     }
 
     /**
+     * Initial value for placeId string
+     * @param  {String} initialPlaceId the user input placeId
+     */
+
+  }, {
+    key: 'intitialInput',
+    value: function intitialInput(initialPlaceId) {
+      var _this5 = this;
+
+      var isPlaceId = new RegExp('^[a-zA-Z0-9-_\s]+$');
+      if (isPlaceId.test(initialPlaceId)) {
+        var value = { placeId: initialPlaceId };
+        this.geocoder.geocode(value, function (results, status) {
+          if (status === _this5.googleMaps.GeocoderStatus.OK) {
+            _this5.props.locationData(results);
+            var formattedAdress = results[0].formatted_address;
+            _this5.setState({ userInput: formattedAdress });
+          } else {
+            _this5.setState({ userInput: '' });
+          }
+        });
+      }
+    }
+
+    /**
      * Render the view
      * @return {Function} The React element to render
      */
@@ -2194,14 +2228,14 @@ var Geosuggest = function (_React$Component) {
   }, {
     key: 'render',
     value: function render() {
-      var _this5 = this;
+      var _this6 = this;
 
       var attributes = (0, _filterInputAttributes2.default)(this.props),
           classes = (0, _classnames2.default)('geosuggest', this.props.className, { 'geosuggest--loading': this.state.isLoading }),
           shouldRenderLabel = this.props.label && attributes.id,
           input = _react2.default.createElement(_input2.default, _extends({ className: this.props.inputClassName,
         ref: function ref(i) {
-          return _this5.input = i;
+          return _this6.input = i;
         },
         value: this.state.userInput,
         ignoreEnter: !this.state.isSuggestsHidden,
