@@ -45,10 +45,17 @@ class App extends React.Component {
   }
 
   /**
+   * Example method to return google map results
+   * @param  {Object} payload The suggest
+   */
+  googleMapResults(payload) {
+    console.log('this is the payLoad for the map results: ', payload);
+  }
+
+  /**
    * Render the example app
    * @return {Function} React render function
    */
-
   render() {
     var fixtures = [
       {label: 'New York', location: {lat: 40.7033127, lng: -73.979681}},
@@ -60,6 +67,7 @@ class App extends React.Component {
       <div>
         <Geosuggest
           initialPlaceId='ChIJEcHIDqKw2YgRZU-t3XHylv8'
+          locationData={this.googleMapResults}
           fixtures={fixtures}
           onFocus={this.onFocus}
           onBlur={this.onBlur}

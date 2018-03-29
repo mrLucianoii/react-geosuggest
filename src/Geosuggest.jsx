@@ -399,6 +399,7 @@ class Geosuggest extends React.Component {
       options,
       (results, status) => {
         if (status === this.googleMaps.GeocoderStatus.OK) {
+          this.props.locationData(results);
           var gmaps = results[0],
             location = gmaps.geometry.location;
           suggest.gmaps = gmaps;
@@ -422,6 +423,7 @@ class Geosuggest extends React.Component {
       const value = {placeId: initialPlaceId};
       this.geocoder.geocode(value, (results, status) => {
         if (status === this.googleMaps.GeocoderStatus.OK) {
+          this.props.locationData(results);
           const formattedAdress = results[0].formatted_address;
           this.setState({userInput: formattedAdress});
         }else {
